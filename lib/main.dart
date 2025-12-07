@@ -1,8 +1,60 @@
 import 'package:flutter/material.dart';
-import 'screens/categories_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
-  runApp(const RecipesApp());
+import 'firebase_options.dart';
+import 'screens/categories_screen.dart';
+import 'screens/favorites_screen.dart';
+import 'screens/meal_detail_screen.dart';
+import 'services/favorites_provider.dart';
+import 'services/favorites_service.dart';
+import 'services/api_service.dart';
+import 'notifications/notification_service.dart';
+import 'notifications/fcm_service.dart';
+
+final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Init локални нотификации со tap handler
+  await NotificationService.instance.init(
+    onTap: (response) async {
+      if (response.payload == 'random') {
+        // Отвори „рандом рецепт“
+        final meal = await ApiService.fetchRandomMeal();
+        final ctx = _navKey.currentContext;
+        if (ctx != null) {
+          Navigator.of(ctx).push(
+            MaterialPageRoute(
+              builder: (_) => MealDetailScreen(mealId: meal.id, preload: meal),
+            ),
+          );
+        }
+      }
+    },
+  );
+
+  // Init FCM
+  await FcmService.instance.init();
+
+  // Пример: закажи дневна нотификација во 20:00 локално
+  await NotificationService.instance.scheduleDailyAt(
+    time: const TimeOfDay(hour: 20, minute: 0),
+    title: 'Recipe of the day',
+    body: 'Tap to see a random recipe',
+    payload: 'random',
+  );
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => FavoritesProvider(FavoritesService())..load(),
+      child: const RecipesApp(),
+    ),
+  );
 }
 
 class RecipesApp extends StatelessWidget {
@@ -16,6 +68,7 @@ class RecipesApp extends StatelessWidget {
     );
 
     return MaterialApp(
+      navigatorKey: _navKey,
       title: 'Recipes App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -26,28 +79,41 @@ class RecipesApp extends StatelessWidget {
           backgroundColor: cs.surfaceContainerHighest,
           foregroundColor: cs.onSurface,
           elevation: 0,
-          titleTextStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          titleTextStyle: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
           iconTheme: IconThemeData(color: cs.primary),
         ),
-        // важно. користи CardThemeData, не CardTheme
         cardTheme: CardThemeData(
           color: cs.surfaceContainerHigh,
           elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           clipBehavior: Clip.antiAlias,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: cs.surfaceContainerHigh,
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
           prefixIconColor: cs.onSurfaceVariant,
         ),
         chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           backgroundColor: cs.surfaceContainerHighest,
-          labelStyle: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
+          labelStyle: TextStyle(
+            color: cs.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         ),
         textTheme: const TextTheme(
@@ -56,6 +122,9 @@ class RecipesApp extends StatelessWidget {
         ),
       ),
       home: const CategoriesScreen(),
+      routes: {
+        '/favorites': (_) => const FavoritesScreen(),
+      },
     );
   }
 }

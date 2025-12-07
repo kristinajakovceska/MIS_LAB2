@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
 import '../models/meal_detail.dart';
+import '../models/meal_summary.dart';
 import '../services/api_service.dart';
+import '../services/favorites_provider.dart';
 import '../widgets/ingredient_chip.dart';
 
 class MealDetailScreen extends StatefulWidget {
@@ -35,8 +39,40 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Recipe')),
+      appBar: AppBar(
+        title: const Text('Recipe'),
+        actions: [
+          FutureBuilder<MealDetail>(
+            future: _future,
+            builder: (context, snapDetail) {
+              final meal = snapDetail.data ?? widget.preload;
+              if (meal == null) return const SizedBox.shrink();
+              return FutureBuilder<bool>(
+                future: context.read<FavoritesProvider>().isFavorite(meal.id),
+                builder: (context, snapFav) {
+                  final isFav = snapFav.data ?? false;
+                  return IconButton(
+                    icon: Icon(isFav ? Icons.favorite : Icons.favorite_border),
+                    onPressed: () async {
+                      await context.read<FavoritesProvider>().toggle(
+                        MealSummary(
+                          id: meal.id,
+                          name: meal.name,
+                          thumbnail: meal.thumbnail,
+                        ),
+                      );
+                      if (mounted) setState(() {});
+                    },
+                    tooltip: isFav ? 'Отстрани од омилени' : 'Додај во омилени',
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<MealDetail>(
         future: _future,
         builder: (context, snapshot) {

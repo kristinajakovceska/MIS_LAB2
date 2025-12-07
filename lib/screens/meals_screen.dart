@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../models/meal_summary.dart';
 import '../services/api_service.dart';
+import '../services/favorites_provider.dart';
 import '../widgets/meal_card.dart';
 import 'meal_detail_screen.dart';
 
@@ -68,7 +71,9 @@ class _MealsScreenState extends State<MealsScreen> {
                       return Center(child: Text('Error: ${snapshot.error}'));
                     }
                     final meals = snapshot.data ?? [];
-                    if (meals.isEmpty) return const Center(child: Text('No meals found'));
+                    if (meals.isEmpty) {
+                      return const Center(child: Text('No meals found'));
+                    }
 
                     return GridView.builder(
                       padding: const EdgeInsets.all(12),
@@ -91,6 +96,10 @@ class _MealsScreenState extends State<MealsScreen> {
                               ),
                             );
                           },
+                          onToggleFavorite: () =>
+                              context.read<FavoritesProvider>().toggle(meal),
+                          isFavoriteFuture:
+                          context.read<FavoritesProvider>().isFavorite(meal.id),
                         );
                       },
                     );

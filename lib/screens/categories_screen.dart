@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../models/category.dart';
 import '../services/api_service.dart';
+import '../services/favorites_provider.dart';
 import '../widgets/category_card.dart';
 import 'meals_screen.dart';
 import 'meal_detail_screen.dart';
+import 'favorites_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -47,7 +51,22 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Categories')),
+      appBar: AppBar(
+        title: const Text('Categories'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            tooltip: 'Омилени рецепти',
+            onPressed: () {
+              context.read<FavoritesProvider>().load();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openRandom,
         icon: const Icon(Icons.casino, size: 22),
@@ -88,7 +107,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         .where((c) => _query.isEmpty || c.name.toLowerCase().contains(_query))
                         .toList();
 
-                    // мобилен. листа од картички
                     if (!_isWide(context)) {
                       return ListView.separated(
                         padding: const EdgeInsets.all(12),
@@ -111,7 +129,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       );
                     }
 
-                    // desktop или large tablet. grid
                     return GridView.builder(
                       padding: const EdgeInsets.all(12),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

@@ -3,9 +3,7 @@ class MealSummary {
   final String name;
   final String thumbnail;
 
-
   MealSummary({required this.id, required this.name, required this.thumbnail});
-
 
   factory MealSummary.fromJson(Map<String, dynamic> json) {
     return MealSummary(
@@ -14,4 +12,10 @@ class MealSummary {
       thumbnail: json['strMealThumb'] as String,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'idMeal': id,
+    'strMeal': name,
+    'strMealThumb': thumbnail,
+  };
 }
